@@ -11,12 +11,13 @@ const envConfig = dotenv.parse(fs.readFileSync(".env"))
 const pool = process.env.POOL as string;
 const tokenA = process.env.TOKEN_A as string;
 const tokenB = process.env.TOKEN_B as string;
+const tokenC = process.env.TOKEN_C as string;
 const fee = 3000;
 
 task('createPool', 'Creates a pool for the given two tokens and fee')
 	.setAction(async ({  }, { ethers }) => {	  
 		const contract = await ethers.getContractAt('Pool', pool)
-		const result = await contract.createPool(tokenA, tokenB, fee, encodePriceSqrt(1, 1))
+		const result = await contract.createPool(tokenB, tokenC, fee, encodePriceSqrt(1, 1))
 		console.log(result);
 	})
 
@@ -26,8 +27,8 @@ task('mint', 'Creates a new position wrapped in a NFT')
 	.setAction(async ({ amount1, amount2 }, { ethers }) => {	  
 		const contract = await ethers.getContractAt('Pool', pool)
 		const result = await contract.mintNewPosition(
-			tokenA, 
 			tokenB, 
+			tokenC, 
 			fee, 
 			getMinTick(fee),
             getMaxTick(fee),

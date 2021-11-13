@@ -9,40 +9,61 @@ const envConfig = dotenv.parse(fs.readFileSync(".env"))
 const swap = process.env.SWAP as string;
 const tokenA = process.env.TOKEN_A as string;
 const tokenB = process.env.TOKEN_B as string;
-const token = process.env.TOKEN as string;
+const tokenC = process.env.TOKEN_C as string;
+const fee = 3000;
 
-task('buyToken', '')
-	.addParam('token', 'A pool token')
-	.addParam('amount', '')
-    .addParam('ethamount', '')
-	.setAction(async ({ token, amount, ethamount }, { ethers }) => {	  
+task('swapExactInputSingle', 'Swaps a fixed amount amount of `_tokenIn` for a maximum possible amount of `_tokenOut`')
+	.addParam('amountin', 'The exact amount of `_tokenIn` that will be swapped for `_tokenOut`')
+	.addParam('amountmin', 'The minimum allowed amount of `_tokenOut` to receive for a swap')
+	.setAction(async ({ amountin, amountmin }, { ethers }) => {	  
     const contract = await ethers.getContractAt('Swap', swap)
-    await contract.swapEthForTokens(amount,token, {value: ethamount});
-      
+    await contract.swapExactInputSingle(
+		tokenA,
+		tokenB,
+		fee,
+		amountin,
+		amountmin);   
 	})
 
-task('addLiquidityETH', 'Adds liquidity to an ERC-20/WETH pool')
-	.addParam('token', 'A pool token')
-    .addParam('amount', 'The amount of token to add as liquidity')
-    .addParam('ethamount', 'The amount of ETH to add as liquidity')
-	.setAction(async ({ token, amount, ethamount }, { ethers }) => {	  
-		const contract = await ethers.getContractAt('Swap', swap)
-		const result = await contract.addLiquidityETH(token, amount,{value: ethamount} )
-		console.log(result);
+task('swapExactOutputSingle', 'Swaps a minumim possible amount of the `_tokenIn` for a fixed amount of the `_tokenOut`')
+	.addParam('amountout', 'The exact amount of `_tokenOut` to receive from a swap')
+	.addParam('amountmax', 'The maximum allowed amount of `_tokenOut` to spend to receive the specified amount of `_tokenId`')
+	.setAction(async ({ amountout, amountmax }, { ethers }) => {	  
+    const contract = await ethers.getContractAt('Swap', swap)
+    await contract.swapExactOutputSingle(
+		tokenA,
+		tokenB,
+		fee,
+		amountout,
+		amountmax);   
 	})
 
-task('addLiquidity', 'Adds liquidity to an ERC-20/WETH pool')
-	.addParam('amount1', 'The amount of tokenA to add as liquidity')
-    .addParam('amount2', 'The amount of tokenB to add as liquidity')
-	.setAction(async ({ amount1, amount2 }, { ethers }) => {	  
-		const contract = await ethers.getContractAt('Swap', swap)
-		const result = await contract.addLiquidity(tokenA, tokenB, amount1, amount2 )
-		console.log(result);
+task('swapExactInputMultihop', 'Swaps a fixed amount of `_tokenIn` for a maximum possible amount of `_tokenOut` through an intermediary pool')
+	.addParam('amountin', 'The exact amount of `_tokenIn` that will be swapped for `_tokenOut`')
+	.addParam('amountmin', 'The minimum allowed amount of `_tokenOut` to receive for a swap')
+	.setAction(async ({ amountin, amountmin }, { ethers }) => {	  
+    const contract = await ethers.getContractAt('Swap', swap)
+    await contract.swapExactInputMultihop(
+		tokenA,
+		tokenB,
+		tokenC,
+		fee,
+		fee,
+		amountin,
+		amountmin);   
 	})
 
-task('removeLiquidity', 'Removes liquidity from an ERC-20/ERC-20 pool.')
-	.setAction(async ({ }, { ethers }) => {	  
-		const contract = await ethers.getContractAt('Swap', swap)
-		const result = await contract.removeLiquidity(tokenA, tokenB)
-		console.log(result);
+task('swapExactOutputMultihop', 'Swaps a minimum possible amount of `_tokenIn` for a fixed amount of `_tokenOut` through an intermediary pool')
+	.addParam('amountout', 'The exact amount of `_tokenOut` to receive from a swap')
+	.addParam('amountmax', 'The maximum allowed amount of `_tokenOut` to spend to receive the specified amount of `_tokenId`')
+	.setAction(async ({ amountout, amountmax }, { ethers }) => {	  
+    const contract = await ethers.getContractAt('Swap', swap)
+    await contract.swapExactOutputMultihop(
+		tokenA,
+		tokenB,
+		tokenC,
+		fee,
+		fee,
+		amountout,
+		amountmax);   
 	})

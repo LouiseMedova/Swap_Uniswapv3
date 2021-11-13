@@ -8,12 +8,11 @@ const envConfig = dotenv.parse(fs.readFileSync(".env"))
 		process.env[k] = envConfig[k]
 	}
 const router = process.env.UNISWAP_ROUTER as string;
-const factory = process.env.UNISWAP_FACTORY as string;
 
 async function deploySwap() {
 	const Swap = await ethers.getContractFactory('Swap')
 	console.log('starting deploying swap...')
-	const swap = await Swap.deploy(router, factory) as Swap
+	const swap = await Swap.deploy(router) as Swap
 	console.log('Swap` deployed with address: ' + swap.address)
 	console.log('wait of deploying...')
 	await swap.deployed()
@@ -24,7 +23,7 @@ async function deploySwap() {
 		await run('verify:verify', {
 			address: swap!.address,
 			contract: 'contracts/Swap.sol:Swap',
-			constructorArguments: [router, factory ],
+			constructorArguments: [router],
 		});
 		console.log('verify success')
 	} catch (e: any) {

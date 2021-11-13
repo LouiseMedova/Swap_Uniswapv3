@@ -39,14 +39,18 @@ describe('Contract: Pool', () => {
 		[admin, user0, user1, user2] = await ethers.getSigners()
 
         let Token = await ethers.getContractFactory('Token')
-		let token_descriptor = await Token.deploy('My Custom Token 0', 'MCT0') as Token
+	    let token_descriptor = await Token.deploy('My Custom Token 0', 'MCT0') as Token
         tokenA = await Token.deploy('Token_A', 'TKA') as Token
         tokenB = await Token.deploy('Token_B', 'TKB') as Token
-        tokenC = await Token.deploy('Token_C', 'TKC') as Token
+        
+        if(Number(tokenA.address) > Number(tokenB.address)) {            
+            let tmp = tokenB;
+            tokenB = tokenA;
+            tokenA = tmp
+        }
 
 		let FACTORY = new ethers.ContractFactory(FACTORY_ABI,FACTORY_BYTECODE, admin);        
 		let factory  = await FACTORY.deploy() 
-        console.log(typeof(factory));
         
         let NFT_MANAGER = new ethers.ContractFactory(NFT_MANAGER_ABI,NFT_MANAGER_BYTECODE, admin);  
 		let nft_manager  = await NFT_MANAGER.deploy(factory.address,token_descriptor.address, token_descriptor.address) 
@@ -54,7 +58,6 @@ describe('Contract: Pool', () => {
         let Pool = await ethers.getContractFactory('Pool')
 		pool = await Pool.deploy(factory.address, nft_manager.address) as Pool
         
-      //  await pool.createPool(tokenA.address, tokenB.address, 3000,  encodePriceSqrt(1, 1))
         await tokenA.approve( nft_manager.address, 1000)
         await tokenB.approve( nft_manager.address, 1000)
 

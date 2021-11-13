@@ -39,7 +39,7 @@ let swap: Swap
 let admin: SignerWithAddress
 let user: SignerWithAddress
 
-describe('Contract: Pool', () => {
+describe('Contract: Swap', () => {
 	before(async () => {
 		[admin, user] = await ethers.getSigners()
 
@@ -48,6 +48,18 @@ describe('Contract: Pool', () => {
         tokenA = await Token.deploy('Token_A', 'TKA') as Token
         tokenB = await Token.deploy('Token_B', 'TKB') as Token
         tokenC = await Token.deploy('Token_C', 'TKC') as Token
+      
+        if(Number(tokenA.address) > Number(tokenB.address)) {            
+            let tmp = tokenB;
+            tokenB = tokenA;
+            tokenA = tmp
+        }
+
+        if(Number(tokenB.address) > Number(tokenC.address)) {
+            let tmp = tokenC;
+            tokenC = tokenB;
+            tokenB = tmp
+        }
 
         let FACTORY = new ethers.ContractFactory(FACTORY_ABI,FACTORY_BYTECODE, admin);        
 		let factory  = await FACTORY.deploy() 
@@ -80,8 +92,8 @@ describe('Contract: Pool', () => {
             1000000000000
             );
         await pool.mintNewPosition(
-            tokenC.address,
-            tokenB.address, 
+            tokenB.address,
+            tokenC.address, 
             3000,
             getMinTick(3000),
             getMaxTick(3000),

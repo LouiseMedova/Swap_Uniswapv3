@@ -11,8 +11,6 @@ import './libraries/TickMath.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 
-
-
 contract Pool is IERC721Receiver{
    
     struct Deposit {
@@ -61,6 +59,11 @@ contract Pool is IERC721Receiver{
         nonfungiblePositionManager = INonfungiblePositionManager(_nonfungiblePositionManager);
     }
 
+    /// @dev Creates a pool for the given two tokens and fee
+    /// @param _tokenA The contract address of the first token
+    /// @param _tokenB The contract address of the second token
+    /// @param _fee The desired fee for the pool
+    /// @param _price The initial sqrt price of the pool as a Q64.96
     function createPool(
         address _tokenA, 
         address _tokenB, 
@@ -77,6 +80,10 @@ contract Pool is IERC721Receiver{
         );
     }
 
+    /// @dev Returnes the pool address
+    /// @param _tokenA The contract address of the first token
+    /// @param _tokenB The contract address of the second token
+    /// @param _fee The fee tier of the pool
     function  getPoolAddress(
         address _tokenA, 
         address _tokenB, 
@@ -87,6 +94,14 @@ contract Pool is IERC721Receiver{
             PoolAddress.getPoolKey(_tokenA, _tokenB, _fee));
     }
 
+    /// @dev Creates a new position wrapped in a NFT
+    /// @param _tokenA The contract address of the inbound token
+    /// @param _tokenB The contract address of the outbound token
+    /// @param _fee The fee tier of the pool
+    /// @param _tickLower The lower end of the tick range for the position
+    /// @param _tickUpper The higher end of the tick range for the position
+    /// @param amountA The amount of tokenA
+    /// @param amountB The amount of tokenB
     function mintNewPosition(
         address _tokenA, 
         address _tokenB, 
@@ -152,12 +167,15 @@ contract Pool is IERC721Receiver{
          );
     }
 
+    /// @dev Increases the amount of liquidity in a position
+    /// @param _tokenId The ID of the token for which liquidity is being increased
+    /// @param _amountA The amount of tokenA
+    /// @param _amountB The amount of tokenB
     function increaseLiquidity(
         uint _tokenId,
         uint _amountA,
         uint _amountB
-    )
-        external
+    ) external
     {
         TransferHelper.safeTransferFrom(deposits[_tokenId].tokenA, msg.sender, address(this), _amountA);
         TransferHelper.safeTransferFrom(deposits[_tokenId].tokenB, msg.sender, address(this), _amountB);
@@ -185,6 +203,11 @@ contract Pool is IERC721Receiver{
         emit LiquidityAdded(amountA, amountB, liquidity);  
     }
 
+    /// @dev Decreases the amount of liquidity in a position
+    /// @param _tokenId The ID of the token for which liquidity is being decreased
+    /// @param _liquidity The amount by which liquidity for the NFT position was decreased
+    /// @param _amountAmin The minimum amount of tokenA that should be accounted for the burned liquidity
+    /// @param _amountBmin The minimum amount of tokenB that should be accounted for the burned liquidity
     function decreaseLiquidity(
          uint _tokenId, 
          uint128 _liquidity,
@@ -210,6 +233,8 @@ contract Pool is IERC721Receiver{
         emit LiquidityDecreased(amountA, amountB, _liquidity);
     }
 
+    /// @dev Collects a maximum amount of fees owed to a specific position
+    /// @param _tokenId The ID of the NFT for which tokens are being collected
     function receiveFees(uint _tokenId) external {
         INonfungiblePositionManager.CollectParams memory params =
             INonfungiblePositionManager.CollectParams({
@@ -233,7 +258,9 @@ contract Pool is IERC721Receiver{
             amountB
             );
     }
-    
+
+    /// @dev Returns the position information associated with a given token ID
+    /// @param _tokenId The ID of the token that represents the position
     function getPosition(uint _tokenId) 
         external view returns(
             address operator, 
@@ -246,9 +273,9 @@ contract Pool is IERC721Receiver{
         }
 
     function onERC721Received(
-        address operator,
         address,
-        uint256 tokenId,
+        address,
+        uint256,
         bytes calldata
     ) external override returns (bytes4) {
         return this.onERC721Received.selector;
