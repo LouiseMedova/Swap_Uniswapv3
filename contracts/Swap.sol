@@ -9,107 +9,144 @@ contract Swap {
 
   ISwapRouter public swapRouter;
   
-  // 0.3%.
-  uint24 public constant poolFee = 3000;
-
-  constructor(ISwapRouter _swapRouter) {
-        swapRouter = _swapRouter;
+  constructor(address _swapRouter) {
+        swapRouter = ISwapRouter(_swapRouter);
     }
-
-  event LiquidityAdded (
-    uint amountA,
-    uint amountB,
-    uint liquidity
-  );
-
-  event LiquidityRemoved (
-    uint amountA,
-    uint amountB
-  );
 
   event SwapDone (
     uint amountIn,
     uint amountOut
   );
 
-  // constructor(address _routerAddress, address _factoryAddress){
-  //   router = IUniswapV2Router02(_routerAddress);
-  //   factory = IUniswapV2Factory(_factoryAddress);
-  // }
-
   receive() payable external {}
 
-  // function swapEthForTokens(uint _amount, address _token) external payable {
-  //     address[] memory path = new address[](2);
-  //     path[0] = router.WETH();
-  //     path[1] = _token;
-  //     uint[] memory amounts = router.swapETHForExactTokens{value: msg.value}(
-  //       _amount, 
-  //       path, 
-  //       address(this), 
-  //       block.timestamp + 120);
-  //   emit SwapDone(amounts[0], amounts[1]);
-  //   (bool success,) = msg.sender.call{ value: address(this).balance }("");
-  //   require(success, "refund failed");
-  // }
+  /// @dev Swaps a fixed amount amount of `_tokenIn` for a maximum possible amount of `_tokenOut`
+  /// @param _tokenIn The contract address of the inbound token
+  /// @param _tokenOut The contract address of the outbound token
+  /// @param _fee The fee tier of the pool
+  /// @param _amountIn The exact amount of `_tokenIn` that will be swapped for `_tokenOut`
+  /// @param _amountMinOut The minimum allowed amount of `_tokenOut` to receive for a swap
+  function swapExactInputSingle(
+    address _tokenIn,
+    address _tokenOut,
+    uint24 _fee,
+    uint _amountIn,
+    uint _amountMinOut
+  ) external {
+      TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountIn);
+      TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountIn);
+      ISwapRouter.ExactInputSingleParams memory params =
+              ISwapRouter.ExactInputSingleParams({
+                  tokenIn: _tokenIn,
+                  tokenOut: _tokenOut,
+                  fee: _fee,
+                  recipient: msg.sender,
+                  deadline: block.timestamp + 120,
+                  amountIn: _amountIn,
+                  amountOutMinimum: _amountMinOut,
+                  sqrtPriceLimitX96: 0
+              });
+      uint amountOut = swapRouter.exactInputSingle(params);
+      emit SwapDone(_amountIn, amountOut);
+  }
 
-  // function addLiquidityETH(address _token, uint _amount) external payable {
-  //     ERC20(_token).transferFrom(msg.sender, address(this), _amount);
-  //     ERC20(_token).approve(address(router), _amount);
-  //     (uint amountToken, uint amountEth, uint liquidity) = router.addLiquidityETH
-  //     { value: msg.value }(
-  //       _token, 
-  //       _amount,  
-  //       _amount, 
-  //       msg.value, 
-  //       address(this),
-  //       block.timestamp + 120);
-  //       emit LiquidityAdded(
-  //         amountToken, 
-  //         amountEth, 
-  //         liquidity);
-  // }
+  /// @dev Swaps a minumim possible amount of the `_tokenIn` for a fixed amount of the `_tokenOut`
+  /// @param _tokenIn The contract address of the inbound token
+  /// @param _tokenOut The contract address of the outbound token
+  /// @param _fee The fee tier of the pool
+  /// @param _amountOut The exact amount of `_tokenOut` to receive from a swap
+  /// @param _amountInMax The maximum allowed amount of `_tokenOut` to spend to receive the specified amount of `_tokenId`
+  function swapExactOutputSingle(
+    address _tokenIn,
+    address _tokenOut,
+    uint24 _fee,
+    uint _amountOut, 
+    uint _amountInMax
+  ) external  {
+      TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountInMax);
+      TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountInMax);
+      ISwapRouter.ExactOutputSingleParams memory params =
+            ISwapRouter.ExactOutputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: msg.sender,
+                deadline: block.timestamp + 120,
+                amountOut: _amountOut,
+                amountInMaximum: _amountInMax,
+                sqrtPriceLimitX96: 0
+            });
+      uint amountIn = swapRouter.exactOutputSingle(params);
+      if (amountIn < _amountInMax) {
+          TransferHelper.safeApprove(_tokenIn, address(swapRouter), 0);
+          TransferHelper.safeTransfer(_tokenIn, msg.sender, _amountInMax - amountIn);
+      }
+      emit SwapDone(amountIn, _amountOut);
+    }
 
-  // function addLiquidity(
-  //   address _tokenA,
-  //   address _tokenB,
-  //   uint _amountA,
-  //   uint _amountB) external {
-  //     ERC20(_tokenA).transferFrom(msg.sender, address(this), _amountA);
-  //     ERC20(_tokenB).transferFrom(msg.sender, address(this), _amountB);
-  //     ERC20(_tokenA).approve(address(router), _amountA);
-  //     ERC20(_tokenB).approve(address(router), _amountB);
-  //     (uint amountA, uint amountB, uint liquidity) = router.addLiquidity(
-  //       _tokenA, 
-  //       _tokenB,
-  //       _amountA,
-  //       _amountB,
-  //       1,
-  //       1,
-  //       address(this),
-  //       block.timestamp + 120);
-  //       emit LiquidityAdded(
-  //         amountA,
-  //         amountB,
-  //         liquidity
-  //       );
-  //   }
-    
-  // function removeLiquidity(address _tokenA, address _tokenB) external {
-  //   address pair = factory.getPair(_tokenA, _tokenB);
-  //   uint liquidity = ERC20(pair).balanceOf(address(this));
-  //   ERC20(pair).approve(address(router), liquidity);
-  //   (uint amountA, uint amountB) = router.removeLiquidity(
-  //     _tokenA, 
-  //     _tokenB, 
-  //     liquidity, 
-  //     1, 
-  //     1, 
-  //     address(this), 
-  //     block.timestamp + 120);
-  //    emit LiquidityRemoved(
-  //         amountA,
-  //         amountB
-  //       );
-  // }
+  /// @dev Swaps a fixed amount of `_tokenIn` for a maximum possible amount of `_tokenOut` through an intermediary pool
+  /// @param _tokenIn The contract address of the inbound token
+  /// @param _tokenInter The contract address of the intermediary token
+  /// @param _tokenOut The contract address of the outbound token
+  /// @param _fee1 The fee tier of the pool `_tokenIn/_tokenInter`
+  /// @param _fee2 The fee tier of the pool `_tokenInter/_tokenOut`
+  /// @param _amountIn The exact amount of `_tokenIn` that will be swapped for `_tokenOut`
+  /// @param _amountMinOut The minimum allowed amount of `_tokenOut` to receive for a swap
+    function swapExactInputMultihop(
+      address _tokenIn,
+      address _tokenInter,
+      address _tokenOut,
+      uint24 _fee1,
+      uint24 _fee2,
+      uint _amountIn,
+      uint _amountMinOut
+    ) external {
+        TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountIn);
+        TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountIn);
+        ISwapRouter.ExactInputParams memory params =
+            ISwapRouter.ExactInputParams({
+                path: abi.encodePacked(_tokenIn, _fee1, _tokenInter, _fee2, _tokenOut),
+                recipient: msg.sender,
+                deadline: block.timestamp + 120,
+                amountIn: _amountIn,
+                amountOutMinimum: _amountMinOut
+            });
+        uint amountOut = swapRouter.exactInput(params);
+        emit SwapDone(_amountIn, amountOut);
+    }
+
+  /// @dev Swaps a minimum possible amount of `_tokenIn` for a fixed amount of `_tokenOut` through an intermediary pool
+  /// @param _tokenIn The contract address of the inbound token
+  /// @param _tokenInter The contract address of the intermediary token
+  /// @param _tokenOut The contract address of the outbound token
+  /// @param _fee1 The fee tier of the pool `_tokenIn/_tokenInter`
+  /// @param _fee2 The fee tier of the pool `_tokenInter/_tokenOut`
+  /// @param _amountOut The desired amount of `_tokenOut`
+  /// @param _amountInMax The maximum allowed amount of `_tokenIn` to spend to receive the desired amount of `_tokenOut`
+    function swapExactOutputMultihop(
+      address _tokenIn,
+      address _tokenInter,
+      address _tokenOut,
+      uint24 _fee1,
+      uint24 _fee2,
+      uint _amountOut,
+      uint _amountInMax
+    ) external {
+        TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountInMax);
+        TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountInMax);
+        ISwapRouter.ExactOutputParams memory params =
+            ISwapRouter.ExactOutputParams({
+                path: abi.encodePacked(_tokenOut, _fee2, _tokenInter, _fee1, _tokenIn),
+                recipient: msg.sender,
+                deadline: block.timestamp + 120,
+                amountOut: _amountOut,
+                amountInMaximum: _amountInMax
+            });
+        uint amountIn = swapRouter.exactOutput(params);
+        if (amountIn < _amountInMax) {
+            TransferHelper.safeApprove(_tokenIn, address(swapRouter), 0);
+            TransferHelper.safeTransfer(_tokenIn, msg.sender, _amountInMax - amountIn);
+        }
+        emit SwapDone(amountIn, _amountOut);
+    }
 }
